@@ -55,28 +55,8 @@ resource "google_project_service" "cloudbuild" {
   disable_on_destroy = false
 }
 
-resource "google_project_service" "apigateway" {
-  service            = "apigateway.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "servicemanagement" {
-  service            = "servicemanagement.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "servicecontrol" {
-  service            = "servicecontrol.googleapis.com"
-  disable_on_destroy = false
-}
-
 resource "google_project_service" "cloudscheduler" {
   service            = "cloudscheduler.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "secretmanager" {
-  service            = "secretmanager.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -106,12 +86,6 @@ resource "google_project_iam_member" "cloudbuild_artifact_writer" {
 # =============================================================================
 # Service Accounts
 # =============================================================================
-
-# API Gateway -> Cloud Run Service invoker
-resource "google_service_account" "api_gateway" {
-  account_id   = "${local.sa_prefix}-gw-sa"
-  display_name = "API Gateway Invoker"
-}
 
 # Cloud Scheduler -> Cloud Run Jobs invoker
 resource "google_service_account" "scheduler" {
@@ -174,66 +148,6 @@ resource "google_cloud_run_v2_service" "app" {
     google_project_service.run,
     google_secret_manager_secret_iam_member.app_access,
   ]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "api_gateway_invoker" {
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.app.name
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.api_gateway.email}"
-}
-
-# =============================================================================
-# API Gateway
-# =============================================================================
-
-resource "google_api_gateway_api" "api" {
-  provider = google-beta
-  api_id   = local.api_id
-
-  depends_on = [
-    google_project_service.apigateway,
-    google_project_service.servicemanagement,
-    google_project_service.servicecontrol,
-  ]
-}
-
-resource "google_api_gateway_api_config" "api_config" {
-  provider      = google-beta
-  api           = google_api_gateway_api.api.api_id
-  api_config_id = "${local.api_id}-config-${var.api_config_version}"
-
-  openapi_documents {
-    document {
-      path = "openapi.yaml"
-      contents = base64encode(templatefile("${path.module}/openapi.yaml.tpl", {
-        cloud_run_url       = google_cloud_run_v2_service.app.uri
-        api_managed_service = google_api_gateway_api.api.managed_service
-      }))
-    }
-  }
-
-  gateway_config {
-    backend_config {
-      google_service_account = google_service_account.api_gateway.email
-    }
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  depends_on = [google_cloud_run_v2_service_iam_member.api_gateway_invoker]
-}
-
-resource "google_api_gateway_gateway" "gateway" {
-  provider   = google-beta
-  api_config = google_api_gateway_api_config.api_config.id
-  gateway_id = "${local.api_id}-gw"
-  region     = var.region
-
-  depends_on = [google_api_gateway_api_config.api_config]
 }
 
 # =============================================================================
@@ -311,43 +225,6 @@ resource "google_cloud_scheduler_job" "job_trigger" {
     google_project_service.cloudscheduler,
     google_cloud_run_v2_job_iam_member.scheduler_invoker,
   ]
-}
-
-# =============================================================================
-# Secret Manager
-# =============================================================================
-
-resource "google_secret_manager_secret" "secrets" {
-  for_each  = toset(var.secret_names)
-  secret_id = "${var.prefix}-${each.key}"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.secretmanager]
-}
-
-resource "google_secret_manager_secret_version" "secrets" {
-  for_each    = toset(var.secret_names)
-  secret      = google_secret_manager_secret.secrets[each.key].id
-  secret_data = var.secret_values[each.key]
-}
-
-# Grant Cloud Run Service SA access to secrets
-resource "google_secret_manager_secret_iam_member" "app_access" {
-  for_each  = toset(var.secret_names)
-  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.app.email}"
-}
-
-# Grant Cloud Run Job SA access to secrets
-resource "google_secret_manager_secret_iam_member" "job_access" {
-  for_each  = toset(var.secret_names)
-  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.job.email}"
 }
 
 # =============================================================================
