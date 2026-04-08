@@ -65,10 +65,13 @@ direnv allow
 # 3. ローカル依存関係のインストール
 make local-install
 
-# 4. Terraform 初期化
+# 4. Terraform ステート用 GCS バケットを作成（初回のみ）
+make setup-backend
+
+# 5. Terraform 初期化
 make init
 
-# 5. デプロイ（Registry作成 → ビルド → Terraform apply）
+# 6. デプロイ（Registry作成 → ビルド → Terraform apply）
 make deploy
 ```
 
@@ -91,11 +94,16 @@ make plan
 ### 削除
 
 ```bash
-# 全リソースを削除
+# Terraform 管理リソースを削除
 make destroy
 ```
 
-> **注意:** `make destroy` は Cloud Run Service / Job / API Gateway / Scheduler / Service Account など Terraform で管理しているリソースをすべて削除します。GCP API の有効化（`google_project_service`）は `disable_on_destroy = false` のため無効化されません。
+> **注意:** `make destroy` は Cloud Run Service / Job / API Gateway / Scheduler / Service Account など Terraform で管理しているリソースをすべて削除します。以下は Terraform 管理外のため手動削除が必要です：
+>
+> | リソース | 削除コマンド | 備考 |
+> |---|---|---|
+> | Terraform ステート用 GCS バケット | `gcloud storage rm -r gs://PREFIX-tfstate` | ステート保存先のため Terraform 管理外 |
+> | 有効化した GCP API | - | `disable_on_destroy = false` のため無効化されない（残っていても課金なし） |
 
 ## 開発
 
@@ -117,6 +125,7 @@ docker compose up
 | コマンド | 説明 |
 |---|---|
 | `make setup` | 環境ファイルの初期生成 |
+| `make setup-backend` | Terraform ステート用 GCS バケット作成（初回のみ） |
 | `make init` | Terraform 初期化 |
 | `make deploy` | 全体デプロイ（API + Job） |
 | `make deploy-app` | API のみデプロイ |

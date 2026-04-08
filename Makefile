@@ -1,4 +1,4 @@
-.PHONY: setup init deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users outputs
+.PHONY: setup setup-backend init deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
 
 # Load .env file
 -include .env
@@ -28,6 +28,10 @@ TF_VAR_app_image_tag = $(APP_IMAGE_TAG)
 TF_VAR_job_image_name = $(JOB_IMAGE_NAME)
 TF_VAR_job_image_tag = $(JOB_IMAGE_TAG)
 
+# Terraform backend
+TF_BUCKET = $(PREFIX)-tfstate
+TF_BACKEND_CONFIG = -backend-config="bucket=$(TF_BUCKET)" -backend-config="prefix=terraform/state"
+
 # Artifact Registry image paths
 APP_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(APP_IMAGE_NAME):$(APP_IMAGE_TAG)
 JOB_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(JOB_IMAGE_NAME):$(JOB_IMAGE_TAG)
@@ -41,8 +45,17 @@ setup:
 	cp -n .envrc.example .envrc || true
 	@echo "Please edit .env with your project settings"
 
+setup-backend:
+	@echo "Creating GCS bucket for Terraform state..."
+	gcloud storage buckets create gs://$(TF_BUCKET) \
+		--project=$(PROJECT_ID) \
+		--location=$(REGION) \
+		--uniform-bucket-level-access \
+		--public-access-prevention
+	@echo "Bucket gs://$(TF_BUCKET) created."
+
 init:
-	cd terraform && terraform init
+	cd terraform && terraform init $(TF_BACKEND_CONFIG)
 
 # =============================================================================
 # Deploy

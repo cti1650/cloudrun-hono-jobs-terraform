@@ -34,7 +34,10 @@ jobs:
 
       - name: Terraform init
         working-directory: terraform
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=${PREFIX}-tfstate" \
+            -backend-config="prefix=terraform/state"
 
       - name: Terraform destroy
         working-directory: terraform
