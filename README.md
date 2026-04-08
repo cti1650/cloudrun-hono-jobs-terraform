@@ -47,7 +47,7 @@ graph TB
 
 ### 前提条件
 
-- Node.js 22+
+- Node.js 24+
 - Google Cloud SDK (`gcloud`)
 - Terraform
 - direnv（推奨）
@@ -57,7 +57,7 @@ graph TB
 ```bash
 # 1. 環境ファイルの作成
 make setup
-# .env を編集して PROJECT_ID を設定
+# .env を編集して PREFIX と PROJECT_ID を設定
 
 # 2. direnv を有効化
 direnv allow
@@ -71,6 +71,31 @@ make init
 # 5. デプロイ（Registry作成 → ビルド → Terraform apply）
 make deploy
 ```
+
+### 更新
+
+```bash
+# コード変更後、再デプロイ
+make deploy
+
+# API のみ更新
+make deploy-app
+
+# Job のみ更新
+make deploy-job
+
+# Terraform の変更内容を事前確認
+make plan
+```
+
+### 削除
+
+```bash
+# 全リソースを削除
+make destroy
+```
+
+> **注意:** `make destroy` は Cloud Run Service / Job / API Gateway / Scheduler / Service Account など Terraform で管理しているリソースをすべて削除します。GCP API の有効化（`google_project_service`）は `disable_on_destroy = false` のため無効化されません。
 
 ## 開発
 
