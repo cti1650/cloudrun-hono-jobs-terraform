@@ -142,7 +142,7 @@ resource "google_service_account" "api_client" {
 resource "google_cloud_run_v2_service" "app" {
   name     = local.app_name
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCING"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     service_account = google_service_account.app.email
