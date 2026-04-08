@@ -183,6 +183,34 @@ curl -X POST \
 
 認証なしパスは OpenAPI 定義で `security: []` を指定し、アプリ側でミドルウェアによる検証を行ってください。
 
+## GitHub Actions デプロイ
+
+Actions タブから手動で実行できます。デプロイ対象を選択可能：
+
+| 選択肢 | 動作 |
+|---|---|
+| `all` | API + Job の全体デプロイ |
+| `app` | API のみビルド＆デプロイ |
+| `job` | Job のみビルド＆デプロイ |
+
+### 事前設定
+
+リポジトリの Settings > Secrets and variables > Actions で以下を設定：
+
+**Secrets:**
+
+| 名前 | 値 |
+|---|---|
+| `GCP_SA_KEY` | デプロイ用サービスアカウントキー（JSON） |
+
+**Variables:**
+
+| 名前 | 値 |
+|---|---|
+| `PREFIX` | リソース名プレフィックス |
+
+> `PROJECT_ID` は `GCP_SA_KEY` から自動取得されます。その他の設定値（リージョン、イメージ名等）はワークフロー内のデフォルト値を使用します。
+
 ## Job 追加
 
 [jobs/src/index.ts](jobs/src/index.ts) の `switch` 文に新しいケースを追加。Terraform で新しい `google_cloud_run_v2_job` リソースと `google_cloud_scheduler_job` を定義してスケジュール設定。

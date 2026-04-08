@@ -1,0 +1,48 @@
+name: Destroy all resources
+
+on:
+  workflow_dispatch:
+
+env:
+  PREFIX: ${{ vars.PREFIX }}
+  REGION: asia-northeast1
+  REPOSITORY_NAME: cloud-run-apps
+  APP_IMAGE_NAME: hono-api
+  JOB_IMAGE_NAME: cloud-run-job
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Extract project ID from credentials
+        run: echo "PROJECT_ID=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -r .project_id)" >> "$GITHUB_ENV"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform destroy
+        working-directory: terraform
+        run: terraform destroy -auto-approve
+        env:
+          TF_VAR_prefix: ${{ env.PREFIX }}
+          TF_VAR_project_id: ${{ env.PROJECT_ID }}
+          TF_VAR_region: ${{ env.REGION }}
+          TF_VAR_repository_name: ${{ env.REPOSITORY_NAME }}
+          TF_VAR_app_image_name: ${{ env.APP_IMAGE_NAME }}
+          TF_VAR_job_image_name: ${{ env.JOB_IMAGE_NAME }}
