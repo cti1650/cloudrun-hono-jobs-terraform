@@ -202,7 +202,7 @@ resource "google_api_gateway_api" "api" {
 resource "google_api_gateway_api_config" "api_config" {
   provider      = google-beta
   api           = google_api_gateway_api.api.api_id
-  api_config_id = "${local.api_id}-config-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  api_config_id = "${local.api_id}-config-${var.api_config_version}"
 
   openapi_documents {
     document {

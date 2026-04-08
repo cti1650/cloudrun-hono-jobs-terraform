@@ -133,7 +133,8 @@ docker compose up
 | `make setup` | 環境ファイルの初期生成 |
 | `make setup-backend` | Terraform ステート用 GCS バケット作成（初回のみ） |
 | `make setup-deploy-sa` | デプロイ用 SA 作成＆キー出力（初回のみ） |
-| `make init` | Terraform 初期化 |
+| `make init` | Terraform 初期化（GCS バックエンド） |
+| `make init-local` | Terraform 初期化（ローカルステート・GCS バケット不要） |
 | `make deploy` | 全体デプロイ（API + Job） |
 | `make deploy-app` | API のみデプロイ |
 | `make deploy-job` | Job のみデプロイ |

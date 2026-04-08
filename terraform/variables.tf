@@ -40,6 +40,12 @@ variable "api_id" {
   default     = "hono-api-gateway"
 }
 
+variable "api_config_version" {
+  description = "API Gateway config version suffix. Increment to force config update (e.g. v1, v2)"
+  type        = string
+  default     = "v1"
+}
+
 # --- Cloud Run Jobs ---
 
 variable "job_image_name" {
