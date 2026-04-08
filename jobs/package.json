@@ -7,9 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.12.2",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
