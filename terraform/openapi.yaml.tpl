@@ -57,6 +57,25 @@ paths:
       responses:
         200:
           description: "Success"
+  /webhook/example:
+    post:
+      summary: "Webhook endpoint (API key auth at app level)"
+      operationId: "postWebhookExample"
+      security: []
+      x-google-backend:
+        address: "${cloud_run_url}/webhook/example"
+        jwt_audience: "${cloud_run_url}"
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+      responses:
+        200:
+          description: "Success"
+        401:
+          description: "Unauthorized"
   /api/users:
     get:
       summary: "Get users list"

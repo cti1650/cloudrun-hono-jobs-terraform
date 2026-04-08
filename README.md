@@ -130,6 +130,7 @@ docker compose up
 | `make run-job` | Cloud Run Job を手動実行 |
 | `make test-health` | ヘルスチェック |
 | `make test-hello` | hello エンドポイントテスト |
+| `make test-webhook` | webhook エンドポイントテスト |
 | `make outputs` | Terraform outputs 表示 |
 
 ## Secret Manager
@@ -154,9 +155,33 @@ const dbUrl = process.env.DATABASE_URL;
 
 > **注意:** `terraform.tfvars` にはシークレットの初期値が平文で含まれます。`.gitignore` に追加してリポジトリにコミットしないでください。
 
+## ルーティングと認証
+
+全トラフィックは API Gateway 経由。Cloud Run への直接アクセスは遮断されています。
+
+| パス | Gateway認証 | アプリ認証 | 用途 |
+|---|---|---|---|
+| `/health` | なし | なし | ヘルスチェック |
+| `/api/*` | IAM認証 | なし | 内部API（社内ツール等） |
+| `/webhook/*` | なし | APIキー（`x-api-key`） | 外部連携（Slack, GAS等） |
+
+### Webhook の呼び出し方
+
+```bash
+curl -X POST \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"event": "test"}' \
+  https://GATEWAY_URL/webhook/example
+```
+
+`WEBHOOK_API_KEY` は Secret Manager で管理されます（`terraform.tfvars` で設定）。
+
 ## API エンドポイント追加
 
 [app/src/routes/](app/src/routes/) にルートファイルを追加し、[app/src/index.ts](app/src/index.ts) で `app.route()` に登録。API Gateway 経由で公開する場合は [terraform/openapi.yaml.tpl](terraform/openapi.yaml.tpl) にもパスを追加。
+
+認証なしパスは OpenAPI 定義で `security: []` を指定し、アプリ側でミドルウェアによる検証を行ってください。
 
 ## Job 追加
 

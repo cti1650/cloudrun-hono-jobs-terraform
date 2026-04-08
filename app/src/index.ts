@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { healthRoute } from "./routes/health.js";
 import { apiRoute } from "./routes/api.js";
+import { webhookRoute } from "./routes/webhook.js";
 
 const app = new Hono();
 
@@ -10,6 +11,7 @@ app.use("*", cors());
 
 app.route("/health", healthRoute);
 app.route("/api", apiRoute);
+app.route("/webhook", webhookRoute);
 
 app.notFound((c) => c.json({ error: "Not Found" }, 404));
 

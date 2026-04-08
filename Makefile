@@ -140,5 +140,11 @@ test-users:
 	TOKEN=$$(gcloud auth print-identity-token --impersonate-service-account=$$SA_EMAIL --audiences=$$AUDIENCE); \
 	curl -s -H "Authorization: Bearer $$TOKEN" "$$GATEWAY_URL/api/users" | jq
 
+test-webhook:
+	@echo "Testing webhook endpoint (requires API key)..."
+	@GATEWAY_URL=$$(cd terraform && terraform output -raw api_gateway_url); \
+	curl -s -X POST -H "x-api-key: $(WEBHOOK_API_KEY)" -H "Content-Type: application/json" \
+		-d '{"event": "test"}' "$$GATEWAY_URL/webhook/example" | jq
+
 outputs:
 	cd terraform && terraform output
