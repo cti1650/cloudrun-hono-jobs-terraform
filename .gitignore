@@ -4,6 +4,7 @@
 
 # Credentials
 credentials.json
+deploy-sa-key.json
 *.json.bak
 
 # Terraform

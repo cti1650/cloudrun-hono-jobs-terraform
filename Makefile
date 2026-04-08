@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend init deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
+.PHONY: setup setup-backend setup-deploy-sa init deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
 
 # Load .env file
 -include .env
@@ -53,6 +53,29 @@ setup-backend:
 		--uniform-bucket-level-access \
 		--public-access-prevention
 	@echo "Bucket gs://$(TF_BUCKET) created."
+
+DEPLOY_SA_NAME = $(shell echo "$(PREFIX)" | cut -c1-20)-deploy-sa
+DEPLOY_SA_EMAIL = $(DEPLOY_SA_NAME)@$(PROJECT_ID).iam.gserviceaccount.com
+
+setup-deploy-sa:
+	@echo "Creating deploy service account..."
+	gcloud iam service-accounts create $(DEPLOY_SA_NAME) \
+		--project=$(PROJECT_ID) \
+		--display-name="Deploy Service Account"
+	@for role in roles/editor roles/storage.admin roles/secretmanager.admin roles/iam.serviceAccountKeyAdmin; do \
+		echo "Granting $$role..."; \
+		gcloud projects add-iam-policy-binding $(PROJECT_ID) \
+			--member="serviceAccount:$(DEPLOY_SA_EMAIL)" \
+			--role="$$role" \
+			--quiet; \
+	done
+	@echo "Creating service account key..."
+	gcloud iam service-accounts keys create deploy-sa-key.json \
+		--iam-account=$(DEPLOY_SA_EMAIL) \
+		--project=$(PROJECT_ID)
+	@echo ""
+	@echo "Done! Set the contents of deploy-sa-key.json as GitHub Actions secret GCP_SA_KEY"
+	@echo "Then delete the local key file: rm deploy-sa-key.json"
 
 init:
 	cd terraform && terraform init $(TF_BACKEND_CONFIG)

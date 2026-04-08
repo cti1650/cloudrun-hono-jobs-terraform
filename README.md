@@ -68,10 +68,15 @@ make local-install
 # 4. Terraform ステート用 GCS バケットを作成（初回のみ）
 make setup-backend
 
-# 5. Terraform 初期化
+# 5. デプロイ用サービスアカウントを作成（GitHub Actions 用・初回のみ）
+make setup-deploy-sa
+# 出力された deploy-sa-key.json の内容を GitHub Actions の Secret (GCP_SA_KEY) に設定
+# 設定後、ローカルのキーファイルを削除: rm deploy-sa-key.json
+
+# 6. Terraform 初期化
 make init
 
-# 6. デプロイ（Registry作成 → ビルド → Terraform apply）
+# 7. デプロイ（Registry作成 → ビルド → Terraform apply）
 make deploy
 ```
 
@@ -103,6 +108,7 @@ make destroy
 > | リソース | 削除コマンド | 備考 |
 > |---|---|---|
 > | Terraform ステート用 GCS バケット | `gcloud storage rm -r gs://PREFIX-tfstate` | ステート保存先のため Terraform 管理外 |
+> | デプロイ用サービスアカウント | `gcloud iam service-accounts delete PREFIX-deploy-sa@PROJECT_ID.iam.gserviceaccount.com` | Terraform 実行元のため管理外 |
 > | 有効化した GCP API | - | `disable_on_destroy = false` のため無効化されない（残っていても課金なし） |
 
 ## 開発
@@ -126,6 +132,7 @@ docker compose up
 |---|---|
 | `make setup` | 環境ファイルの初期生成 |
 | `make setup-backend` | Terraform ステート用 GCS バケット作成（初回のみ） |
+| `make setup-deploy-sa` | デプロイ用 SA 作成＆キー出力（初回のみ） |
 | `make init` | Terraform 初期化 |
 | `make deploy` | 全体デプロイ（API + Job） |
 | `make deploy-app` | API のみデプロイ |
