@@ -1,3 +1,8 @@
+variable "prefix" {
+  description = "Resource name prefix to avoid conflicts (e.g. myapp, dev)"
+  type        = string
+}
+
 variable "project_id" {
   description = "GCP Project ID"
   type        = string

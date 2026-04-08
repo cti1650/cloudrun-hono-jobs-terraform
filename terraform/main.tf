@@ -12,8 +12,14 @@ terraform {
 }
 
 locals {
-  app_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.app_image_name}:${var.app_image_tag}"
-  job_image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.job_image_name}:${var.job_image_tag}"
+  # SA account_id is 6-30 chars, so truncate prefix for SA names
+  sa_prefix       = substr(var.prefix, 0, min(20, length(var.prefix)))
+  repository_name = "${var.prefix}-${var.repository_name}"
+  app_name        = "${var.prefix}-${var.app_image_name}"
+  job_name        = "${var.prefix}-${var.job_image_name}"
+  api_id          = "${var.prefix}-${var.api_id}"
+  app_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.app_image_name}:${var.app_image_tag}"
+  job_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.job_image_name}:${var.job_image_tag}"
 }
 
 provider "google" {
@@ -71,7 +77,7 @@ resource "google_project_service" "cloudscheduler" {
 
 resource "google_artifact_registry_repository" "app" {
   location      = var.region
-  repository_id = var.repository_name
+  repository_id = local.repository_name
   format        = "DOCKER"
 
   depends_on = [google_project_service.artifactregistry]
@@ -94,19 +100,19 @@ resource "google_project_iam_member" "cloudbuild_artifact_writer" {
 
 # API Gateway -> Cloud Run Service invoker
 resource "google_service_account" "api_gateway" {
-  account_id   = "api-gateway-sa"
+  account_id   = "${local.sa_prefix}-gw-sa"
   display_name = "API Gateway Invoker"
 }
 
 # Cloud Scheduler -> Cloud Run Jobs invoker
 resource "google_service_account" "scheduler" {
-  account_id   = "scheduler-sa"
+  account_id   = "${local.sa_prefix}-sched-sa"
   display_name = "Cloud Scheduler Job Invoker"
 }
 
 # Client service account for API testing
 resource "google_service_account" "api_client" {
-  account_id   = "api-client-sa"
+  account_id   = "${local.sa_prefix}-client-sa"
   display_name = "API Client Service Account"
 }
 
@@ -115,7 +121,7 @@ resource "google_service_account" "api_client" {
 # =============================================================================
 
 resource "google_cloud_run_v2_service" "app" {
-  name     = var.app_image_name
+  name     = local.app_name
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
 
@@ -145,7 +151,7 @@ resource "google_cloud_run_v2_service_iam_member" "api_gateway_invoker" {
 
 resource "google_api_gateway_api" "api" {
   provider = google-beta
-  api_id   = var.api_id
+  api_id   = local.api_id
 
   depends_on = [
     google_project_service.apigateway,
@@ -157,7 +163,7 @@ resource "google_api_gateway_api" "api" {
 resource "google_api_gateway_api_config" "api_config" {
   provider      = google-beta
   api           = google_api_gateway_api.api.api_id
-  api_config_id = "${var.api_id}-config-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  api_config_id = "${local.api_id}-config-${formatdate("YYYYMMDDhhmmss", timestamp())}"
 
   openapi_documents {
     document {
@@ -185,7 +191,7 @@ resource "google_api_gateway_api_config" "api_config" {
 resource "google_api_gateway_gateway" "gateway" {
   provider   = google-beta
   api_config = google_api_gateway_api_config.api_config.id
-  gateway_id = "${var.api_id}-gw"
+  gateway_id = "${local.api_id}-gw"
   region     = var.region
 
   depends_on = [google_api_gateway_api_config.api_config]
@@ -196,7 +202,7 @@ resource "google_api_gateway_gateway" "gateway" {
 # =============================================================================
 
 resource "google_cloud_run_v2_job" "job" {
-  name     = var.job_image_name
+  name     = local.job_name
   location = var.region
 
   template {
@@ -230,7 +236,7 @@ resource "google_cloud_run_v2_job_iam_member" "scheduler_invoker" {
 # =============================================================================
 
 resource "google_cloud_scheduler_job" "job_trigger" {
-  name      = "${var.job_image_name}-trigger"
+  name      = "${local.job_name}-trigger"
   region    = var.region
   schedule  = var.job_schedule
   time_zone = var.job_schedule_timezone

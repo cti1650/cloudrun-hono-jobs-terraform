@@ -5,6 +5,7 @@
 export
 
 # Defaults
+PREFIX ?= myapp
 REGION ?= asia-northeast1
 REPOSITORY_NAME ?= cloud-run-apps
 APP_IMAGE_NAME ?= hono-api
@@ -12,7 +13,13 @@ APP_IMAGE_TAG ?= latest
 JOB_IMAGE_NAME ?= cloud-run-job
 JOB_IMAGE_TAG ?= latest
 
+# Prefixed names (must match Terraform locals)
+PREFIXED_REPOSITORY = $(PREFIX)-$(REPOSITORY_NAME)
+PREFIXED_APP_NAME = $(PREFIX)-$(APP_IMAGE_NAME)
+PREFIXED_JOB_NAME = $(PREFIX)-$(JOB_IMAGE_NAME)
+
 # Terraform variables
+TF_VAR_prefix = $(PREFIX)
 TF_VAR_project_id = $(PROJECT_ID)
 TF_VAR_region = $(REGION)
 TF_VAR_repository_name = $(REPOSITORY_NAME)
@@ -22,8 +29,8 @@ TF_VAR_job_image_name = $(JOB_IMAGE_NAME)
 TF_VAR_job_image_tag = $(JOB_IMAGE_TAG)
 
 # Artifact Registry image paths
-APP_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPOSITORY_NAME)/$(APP_IMAGE_NAME):$(APP_IMAGE_TAG)
-JOB_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPOSITORY_NAME)/$(JOB_IMAGE_NAME):$(JOB_IMAGE_TAG)
+APP_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(APP_IMAGE_NAME):$(APP_IMAGE_TAG)
+JOB_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(JOB_IMAGE_NAME):$(JOB_IMAGE_TAG)
 
 # =============================================================================
 # Setup
@@ -88,7 +95,7 @@ local-install:
 # =============================================================================
 
 run-job:
-	gcloud run jobs execute $(JOB_IMAGE_NAME) --project=$(PROJECT_ID) --region=$(REGION) --wait
+	gcloud run jobs execute $(PREFIXED_JOB_NAME) --project=$(PROJECT_ID) --region=$(REGION) --wait
 
 # =============================================================================
 # API testing
