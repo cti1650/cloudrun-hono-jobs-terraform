@@ -14,10 +14,12 @@ terraform {
 locals {
   # SA account_id is 6-30 chars, so truncate prefix for SA names
   sa_prefix       = substr(var.prefix, 0, min(20, length(var.prefix)))
+  # api_config_id max 63 chars, suffix "-config-YYYYMMDDhhmmss" is 22 chars, so api_id max 41 chars
+  api_id_full     = "${var.prefix}-${var.api_id}"
+  api_id          = substr(local.api_id_full, 0, min(41, length(local.api_id_full)))
   repository_name = "${var.prefix}-${var.repository_name}"
   app_name        = "${var.prefix}-${var.app_image_name}"
   job_name        = "${var.prefix}-${var.job_image_name}"
-  api_id          = "${var.prefix}-${var.api_id}"
   app_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.app_image_name}:${var.app_image_tag}"
   job_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.job_image_name}:${var.job_image_tag}"
 }
