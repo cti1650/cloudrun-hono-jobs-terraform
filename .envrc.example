@@ -1,0 +1,7 @@
+# .env を読み込み、Terraform 用変数も設定
+dotenv
+export TF_VAR_project_id="${PROJECT_ID}"
+export TF_VAR_region="${REGION}"
+export TF_VAR_repository_name="${REPOSITORY_NAME}"
+export TF_VAR_app_image_name="${APP_IMAGE_NAME}"
+export TF_VAR_job_image_name="${JOB_IMAGE_NAME}"

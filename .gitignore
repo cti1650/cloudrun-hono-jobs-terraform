@@ -1,0 +1,29 @@
+# Environment files
+.env
+.envrc
+
+# Credentials
+credentials.json
+*.json.bak
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/.terraform.tfstate.lock.info
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+
+# Node.js
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
