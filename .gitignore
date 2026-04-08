@@ -13,6 +13,7 @@ terraform/.terraform.tfstate.lock.info
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/*.tfplan
+terraform/*.tfvars
 
 # Node.js
 node_modules/

@@ -132,6 +132,28 @@ docker compose up
 | `make test-hello` | hello エンドポイントテスト |
 | `make outputs` | Terraform outputs 表示 |
 
+## Secret Manager
+
+`terraform.tfvars` または環境変数でシークレットを定義すると、Cloud Run Service / Job の両方に環境変数として自動マウントされます。
+
+```hcl
+# terraform.tfvars
+secret_names = ["DATABASE_URL", "API_KEY"]
+
+secret_values = {
+  DATABASE_URL = "postgresql://user:pass@host:5432/db"
+  API_KEY      = "sk-xxxx"
+}
+```
+
+アプリからは通常の環境変数としてアクセスできます。
+
+```typescript
+const dbUrl = process.env.DATABASE_URL;
+```
+
+> **注意:** `terraform.tfvars` にはシークレットの初期値が平文で含まれます。`.gitignore` に追加してリポジトリにコミットしないでください。
+
 ## API エンドポイント追加
 
 [app/src/routes/](app/src/routes/) にルートファイルを追加し、[app/src/index.ts](app/src/index.ts) で `app.route()` に登録。API Gateway 経由で公開する場合は [terraform/openapi.yaml.tpl](terraform/openapi.yaml.tpl) にもパスを追加。

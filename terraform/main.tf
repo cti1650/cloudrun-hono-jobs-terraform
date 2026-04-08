@@ -73,6 +73,11 @@ resource "google_project_service" "cloudscheduler" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "secretmanager" {
+  service            = "secretmanager.googleapis.com"
+  disable_on_destroy = false
+}
+
 # =============================================================================
 # Artifact Registry
 # =============================================================================
@@ -112,6 +117,18 @@ resource "google_service_account" "scheduler" {
   display_name = "Cloud Scheduler Job Invoker"
 }
 
+# Cloud Run Service runtime SA (for Secret Manager access)
+resource "google_service_account" "app" {
+  account_id   = "${local.sa_prefix}-app-sa"
+  display_name = "Cloud Run Service Runtime"
+}
+
+# Cloud Run Job runtime SA (for Secret Manager access)
+resource "google_service_account" "job" {
+  account_id   = "${local.sa_prefix}-job-sa"
+  display_name = "Cloud Run Job Runtime"
+}
+
 # Client service account for API testing
 resource "google_service_account" "api_client" {
   account_id   = "${local.sa_prefix}-client-sa"
@@ -128,15 +145,33 @@ resource "google_cloud_run_v2_service" "app" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
+    service_account = google_service_account.app.email
+
     containers {
       image = local.app_image
       ports {
         container_port = 8080
       }
+
+      dynamic "env" {
+        for_each = toset(var.secret_names)
+        content {
+          name = env.value
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.secrets[env.value].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
     }
   }
 
-  depends_on = [google_project_service.run]
+  depends_on = [
+    google_project_service.run,
+    google_secret_manager_secret_iam_member.app_access,
+  ]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "api_gateway_invoker" {
@@ -209,11 +244,26 @@ resource "google_cloud_run_v2_job" "job" {
 
   template {
     template {
+      service_account = google_service_account.job.email
+
       containers {
         image = local.job_image
         env {
           name  = "TASK_NAME"
           value = "example"
+        }
+
+        dynamic "env" {
+          for_each = toset(var.secret_names)
+          content {
+            name = env.value
+            value_source {
+              secret_key_ref {
+                secret  = google_secret_manager_secret.secrets[env.value].secret_id
+                version = "latest"
+              }
+            }
+          }
         }
       }
       max_retries = 1
@@ -221,7 +271,10 @@ resource "google_cloud_run_v2_job" "job" {
     }
   }
 
-  depends_on = [google_project_service.run]
+  depends_on = [
+    google_project_service.run,
+    google_secret_manager_secret_iam_member.job_access,
+  ]
 }
 
 # Grant scheduler SA permission to invoke the job
@@ -256,6 +309,43 @@ resource "google_cloud_scheduler_job" "job_trigger" {
     google_project_service.cloudscheduler,
     google_cloud_run_v2_job_iam_member.scheduler_invoker,
   ]
+}
+
+# =============================================================================
+# Secret Manager
+# =============================================================================
+
+resource "google_secret_manager_secret" "secrets" {
+  for_each  = toset(var.secret_names)
+  secret_id = "${var.prefix}-${each.key}"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager]
+}
+
+resource "google_secret_manager_secret_version" "secrets" {
+  for_each    = toset(var.secret_names)
+  secret      = google_secret_manager_secret.secrets[each.key].id
+  secret_data = var.secret_values[each.key]
+}
+
+# Grant Cloud Run Service SA access to secrets
+resource "google_secret_manager_secret_iam_member" "app_access" {
+  for_each  = toset(var.secret_names)
+  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.app.email}"
+}
+
+# Grant Cloud Run Job SA access to secrets
+resource "google_secret_manager_secret_iam_member" "job_access" {
+  for_each  = toset(var.secret_names)
+  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.job.email}"
 }
 
 # =============================================================================

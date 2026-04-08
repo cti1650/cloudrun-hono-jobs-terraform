@@ -95,7 +95,7 @@ local-install:
 # =============================================================================
 
 run-job:
-	gcloud run jobs execute $(PREFIXED_JOB_NAME) --project=$(PROJECT_ID) --region=$(REGION) --wait
+	gcloud beta run jobs execute $(PREFIXED_JOB_NAME) --project=$(PROJECT_ID) --region=$(REGION) --wait
 
 # =============================================================================
 # API testing

@@ -65,3 +65,18 @@ variable "job_schedule_timezone" {
   type        = string
   default     = "Asia/Tokyo"
 }
+
+# --- Secret Manager ---
+
+variable "secret_names" {
+  description = "List of secret env var names to create in Secret Manager"
+  type        = list(string)
+  default     = []
+}
+
+variable "secret_values" {
+  description = "Map of secret env var names to their values (must match secret_names)"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
