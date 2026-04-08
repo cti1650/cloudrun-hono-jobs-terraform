@@ -10,6 +10,7 @@ deploy-sa-key.json
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl
+terraform/local_override.tf
 terraform/.terraform.tfstate.lock.info
 terraform/*.tfstate
 terraform/*.tfstate.backup

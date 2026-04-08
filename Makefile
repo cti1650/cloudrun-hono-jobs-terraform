@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-deploy-sa init deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
+.PHONY: setup setup-backend setup-deploy-sa init init-local deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
 
 # Load .env file
 -include .env
@@ -78,7 +78,13 @@ setup-deploy-sa:
 	@echo "Then delete the local key file: rm deploy-sa-key.json"
 
 init:
+	@rm -f terraform/local_override.tf
 	cd terraform && terraform init $(TF_BACKEND_CONFIG)
+
+init-local:
+	@printf 'terraform {\n  backend "local" {}\n}\n' > terraform/local_override.tf
+	cd terraform && terraform init -reconfigure
+	@echo "Using local state (terraform/terraform.tfstate)"
 
 # =============================================================================
 # Deploy
