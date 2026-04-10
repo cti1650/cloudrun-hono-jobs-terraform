@@ -37,6 +37,17 @@ resource "google_cloud_run_v2_service" "pages" {
   ]
 }
 
+# Grant IAP service agent permission to invoke Cloud Run
+resource "google_cloud_run_v2_service_iam_member" "iap_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.pages.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-iap.iam.gserviceaccount.com"
+
+  depends_on = [google_project_service.iap]
+}
+
 # Grant IAP-secured Web App User to specified principals
 # var.iap_members example: ["user:foo@example.com", "group:team@example.com"]
 resource "google_iap_web_cloud_run_service_iam_member" "pages_users" {
