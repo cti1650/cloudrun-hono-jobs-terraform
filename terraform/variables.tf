@@ -72,6 +72,20 @@ variable "job_schedule_timezone" {
   default     = "Asia/Tokyo"
 }
 
+# --- Pages (IAP) ---
+
+variable "pages_image_name" {
+  description = "Container image name for the Pages service"
+  type        = string
+  default     = "pages"
+}
+
+variable "iap_members" {
+  description = "Principals granted IAP-secured Web App User (e.g. ['user:foo@example.com', 'group:team@example.com'])"
+  type        = list(string)
+  default     = []
+}
+
 # --- Secret Manager ---
 
 variable "secret_names" {

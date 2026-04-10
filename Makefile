@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-deploy-sa init init-local deploy deploy-app deploy-job apply-registry build-app build-job plan apply destroy local run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
+.PHONY: setup setup-backend setup-deploy-sa init init-local deploy deploy-app deploy-job deploy-pages apply-registry build-app build-job build-pages plan apply destroy local local-job local-pages run-job export-key get-token test-health test-hello test-hello-post test-users test-webhook outputs
 
 # Load .env file
 -include .env
@@ -12,11 +12,14 @@ APP_IMAGE_NAME ?= hono-api
 APP_IMAGE_TAG ?= latest
 JOB_IMAGE_NAME ?= cloud-run-job
 JOB_IMAGE_TAG ?= latest
+PAGES_IMAGE_NAME ?= pages
+PAGES_IMAGE_TAG ?= latest
 
 # Prefixed names (must match Terraform locals)
 PREFIXED_REPOSITORY = $(PREFIX)-$(REPOSITORY_NAME)
 PREFIXED_APP_NAME = $(PREFIX)-$(APP_IMAGE_NAME)
 PREFIXED_JOB_NAME = $(PREFIX)-$(JOB_IMAGE_NAME)
+PREFIXED_PAGES_NAME = $(PREFIX)-$(PAGES_IMAGE_NAME)
 
 # Terraform variables
 TF_VAR_prefix = $(PREFIX)
@@ -27,6 +30,7 @@ TF_VAR_app_image_name = $(APP_IMAGE_NAME)
 TF_VAR_app_image_tag = $(APP_IMAGE_TAG)
 TF_VAR_job_image_name = $(JOB_IMAGE_NAME)
 TF_VAR_job_image_tag = $(JOB_IMAGE_TAG)
+TF_VAR_pages_image_name = $(PAGES_IMAGE_NAME)
 
 # Terraform backend
 TF_BUCKET = $(PREFIX)-tfstate
@@ -35,6 +39,7 @@ TF_BACKEND_CONFIG = -backend-config="bucket=$(TF_BUCKET)" -backend-config="prefi
 # Artifact Registry image paths
 APP_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(APP_IMAGE_NAME):$(APP_IMAGE_TAG)
 JOB_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(JOB_IMAGE_NAME):$(JOB_IMAGE_TAG)
+PAGES_IMAGE_PATH = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(PREFIXED_REPOSITORY)/$(PAGES_IMAGE_NAME):$(PAGES_IMAGE_TAG)
 
 # =============================================================================
 # Setup
@@ -90,7 +95,7 @@ init-local:
 # Deploy
 # =============================================================================
 
-deploy: apply-registry build-app build-job apply export-key
+deploy: apply-registry build-app build-job build-pages apply export-key
 	@echo "Deployment complete!"
 
 deploy-app: apply-registry build-app apply export-key
@@ -98,6 +103,9 @@ deploy-app: apply-registry build-app apply export-key
 
 deploy-job: apply-registry build-job apply
 	@echo "Job deployment complete!"
+
+deploy-pages: apply-registry build-pages apply
+	@echo "Pages deployment complete!"
 
 apply-registry:
 	cd terraform && terraform apply \
@@ -111,6 +119,9 @@ build-app:
 
 build-job:
 	cd jobs && gcloud builds submit --project=$(PROJECT_ID) --tag $(JOB_IMAGE_PATH)
+
+build-pages:
+	cd pages && gcloud builds submit --project=$(PROJECT_ID) --tag $(PAGES_IMAGE_PATH)
 
 plan:
 	cd terraform && terraform plan
@@ -131,9 +142,13 @@ local:
 local-job:
 	cd jobs && npm run dev
 
+local-pages:
+	cd pages && npm run dev
+
 local-install:
 	cd app && npm install
 	cd jobs && npm install
+	cd pages && npm install
 
 # =============================================================================
 # Job operations

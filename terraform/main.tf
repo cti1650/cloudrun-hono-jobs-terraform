@@ -22,8 +22,10 @@ locals {
   repository_name = "${var.prefix}-${var.repository_name}"
   app_name        = "${var.prefix}-${var.app_image_name}"
   job_name        = "${var.prefix}-${var.job_image_name}"
+  pages_name      = "${var.prefix}-${var.pages_image_name}"
   app_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.app_image_name}:${var.app_image_tag}"
   job_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.job_image_name}:${var.job_image_tag}"
+  pages_image     = "${var.region}-docker.pkg.dev/${var.project_id}/${local.repository_name}/${var.pages_image_name}:latest"
 }
 
 provider "google" {
