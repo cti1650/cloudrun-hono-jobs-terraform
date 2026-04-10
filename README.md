@@ -266,12 +266,70 @@ iap_members = [
 - IAP が認証済みユーザーの情報を `x-goog-authenticated-user-email` ヘッダーで渡す
 - [pages/src/index.ts](pages/src/index.ts) はそのヘッダーを読み取って画面に表示
 
-### 初回セットアップの注意
+### 初回セットアップ（OAuth 同意画面 / クライアント）
 
-IAP を初めて使うプロジェクトでは、GCP コンソールで **OAuth 同意画面** の設定が必要です：
+IAP を使うには、プロジェクトに **OAuth 同意画面（Brand）** と **OAuth クライアント** が必要です。アカウント種別に応じて手順が異なります。
 
-1. [APIs & Services > OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) を開く
-2. User Type（Internal 推奨）と必要情報を入力して作成
+#### ケース1: Google Workspace ユーザー（Internal 公開）
+
+Workspace 組織内のみでの利用なら Terraform で自動化できます。
+
+`terraform.tfvars` に以下を追加：
+
+```hcl
+iap_support_email = "your-email@your-workspace-domain.com"
+```
+
+`make apply` を実行すると以下が自動作成されます：
+
+- `google_iap_brand` — OAuth 同意画面（Internal タイプ）
+- `google_iap_client` — OAuth クライアント
+- IAP サービスエージェントへの Cloud Run invoker 権限
+
+> **注意:** `iap_support_email` に指定するメールアドレスは、**プロジェクトのオーナー** または **Workspace ドメイン内のユーザー** である必要があります。
+
+#### ケース2: 個人 Google アカウント（External 公開）
+
+Terraform では External タイプの Brand を作成できないため、**GCP コンソールで手動設定** します。`iap_support_email` は指定不要です。
+
+**手順:**
+
+1. **OAuth 同意画面を作成**
+   1. [APIs & Services > OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) を開く
+   2. **User Type: External** を選択して「Create」
+   3. 入力項目：
+      - **App name**: 任意（例: `My Pages`）
+      - **User support email**: 自分のメールアドレス
+      - **Developer contact information**: 自分のメールアドレス
+   4. **Scopes** 画面 → 何も追加せず「Save and Continue」
+   5. **Test users** 画面 → アクセスさせたいアカウントのメールを追加（自分も含む）
+   6. **Publishing status** は `Testing` のまま（Test users のみログイン可能）
+
+2. **OAuth クライアント ID を作成**
+   1. [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials) を開く
+   2. **Create Credentials > OAuth client ID** をクリック
+   3. 入力項目：
+      - **Application type**: `Web application`
+      - **Name**: 任意（例: `IAP Pages Client`）
+   4. いったん作成 → Client ID をコピー
+   5. 作成したクライアントを編集し、**Authorized redirect URIs** に以下を追加して保存：
+      ```
+      https://iap.googleapis.com/v1/oauth/clientIds/CLIENT_ID:handleRedirect
+      ```
+      `CLIENT_ID` は先ほどコピーした値に置き換える
+   6. **Client ID** と **Client secret** を控える
+
+3. **IAP に OAuth クライアントを設定**
+   1. [Security > Identity-Aware Proxy](https://console.cloud.google.com/security/iap) を開く
+   2. 対象の Cloud Run サービス（Pages）の行の右側 **⋮** メニュー → **Edit OAuth client**
+   3. 控えた **Client ID** と **Client secret** を入力して保存
+
+**アクセスできるユーザー:**
+
+- OAuth 同意画面の **Test users** に追加されたアカウント、かつ
+- `iap_members` で `roles/iap.httpsResourceAccessor` を付与されたプリンシパル
+
+両方を満たすユーザーのみがページにアクセスできます。
 
 ## API エンドポイント追加
 

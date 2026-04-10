@@ -86,6 +86,12 @@ variable "iap_members" {
   default     = []
 }
 
+variable "iap_support_email" {
+  description = "Support email for IAP OAuth brand (must be an owner of the project or a Google Workspace user)"
+  type        = string
+  default     = ""
+}
+
 # --- Secret Manager ---
 
 variable "secret_names" {

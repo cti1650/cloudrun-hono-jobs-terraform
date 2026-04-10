@@ -7,6 +7,23 @@ resource "google_project_service" "iap" {
   disable_on_destroy = false
 }
 
+# IAP OAuth Brand (consent screen). Only Internal type is supported by Terraform.
+# Requires Google Workspace organization. For external accounts, create manually in GCP Console.
+resource "google_iap_brand" "project_brand" {
+  count             = var.iap_support_email != "" ? 1 : 0
+  support_email     = var.iap_support_email
+  application_title = "${var.prefix} Pages"
+
+  depends_on = [google_project_service.iap]
+}
+
+# IAP OAuth Client for Cloud Run
+resource "google_iap_client" "project_client" {
+  count        = var.iap_support_email != "" ? 1 : 0
+  display_name = "${var.prefix}-pages-client"
+  brand        = google_iap_brand.project_brand[0].name
+}
+
 # Cloud Run Pages runtime SA
 resource "google_service_account" "pages" {
   account_id   = "${local.sa_prefix}-pages-sa"
@@ -14,6 +31,8 @@ resource "google_service_account" "pages" {
 }
 
 resource "google_cloud_run_v2_service" "pages" {
+  provider = google-beta
+
   name     = local.pages_name
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
