@@ -113,14 +113,18 @@ make destroy
 
 ## 開発
 
-### ローカル開発（API）
+### ローカル開発
 
 ```bash
+# API を起動（ホットリロード）
 make local
 # http://localhost:8080 でHono APIが起動
+
+# Job を単発実行
+make local-job
 ```
 
-### Docker Compose
+### Docker Compose（API + Job をまとめて実行）
 
 ```bash
 docker compose up
@@ -144,6 +148,7 @@ docker compose up
 | `make apply` | Terraform apply |
 | `make destroy` | 全リソース削除 |
 | `make local` | ローカルAPI起動 |
+| `make local-job` | ローカルJob実行 |
 | `make run-job` | Cloud Run Job を手動実行 |
 | `make test-health` | ヘルスチェック |
 | `make test-hello` | hello エンドポイントテスト |

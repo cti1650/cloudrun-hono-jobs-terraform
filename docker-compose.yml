@@ -5,3 +5,9 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
+      - WEBHOOK_API_KEY=local-dev-key
+
+  jobs:
+    build: ./jobs
+    environment:
+      - TASK_NAME=example

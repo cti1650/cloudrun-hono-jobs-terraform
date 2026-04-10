@@ -128,6 +128,9 @@ destroy:
 local:
 	cd app && npm run dev
 
+local-job:
+	cd jobs && npm run dev
+
 local-install:
 	cd app && npm install
 	cd jobs && npm install
