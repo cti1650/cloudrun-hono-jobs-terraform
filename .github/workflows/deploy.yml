@@ -11,6 +11,7 @@ on:
           - all
           - app
           - job
+          - pages
 
 env:
   PREFIX: ${{ vars.PREFIX }}
@@ -18,6 +19,7 @@ env:
   REPOSITORY_NAME: cloud-run-apps
   APP_IMAGE_NAME: hono-api
   JOB_IMAGE_NAME: cloud-run-job
+  PAGES_IMAGE_NAME: pages
 
 jobs:
   deploy:
@@ -66,6 +68,7 @@ jobs:
           TF_VAR_repository_name: ${{ env.REPOSITORY_NAME }}
           TF_VAR_app_image_name: ${{ env.APP_IMAGE_NAME }}
           TF_VAR_job_image_name: ${{ env.JOB_IMAGE_NAME }}
+          TF_VAR_pages_image_name: ${{ env.PAGES_IMAGE_NAME }}
 
       - name: Build & push API image
         if: inputs.target == 'all' || inputs.target == 'app'
@@ -81,6 +84,13 @@ jobs:
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${PREFIX}-${REPOSITORY_NAME}/${JOB_IMAGE_NAME}:latest"
           gcloud builds submit --project="${PROJECT_ID}" --tag "${IMAGE}"
 
+      - name: Build & push Pages image
+        if: inputs.target == 'all' || inputs.target == 'pages'
+        working-directory: pages
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${PREFIX}-${REPOSITORY_NAME}/${PAGES_IMAGE_NAME}:latest"
+          gcloud builds submit --project="${PROJECT_ID}" --tag "${IMAGE}"
+
       - name: Terraform apply
         working-directory: terraform
         run: terraform apply -auto-approve
@@ -91,3 +101,4 @@ jobs:
           TF_VAR_repository_name: ${{ env.REPOSITORY_NAME }}
           TF_VAR_app_image_name: ${{ env.APP_IMAGE_NAME }}
           TF_VAR_job_image_name: ${{ env.JOB_IMAGE_NAME }}
+          TF_VAR_pages_image_name: ${{ env.PAGES_IMAGE_NAME }}

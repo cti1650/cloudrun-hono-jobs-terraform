@@ -1,6 +1,12 @@
 # cloudrun-hono-jobs-terraform
 
-Cloud Run Service (Hono API) + Cloud Run Jobs + Cloud Scheduler を Terraform で管理するテンプレートリポジトリ。
+Google Cloud 上で Hono ベースの内部サービスを動かすためのテンプレートリポジトリ。以下を Terraform で一括管理します：
+
+- **API Gateway + Cloud Run Service** — IAM認証 / APIキー認証 / 認証なし をパスごとに切り替え可能な API
+- **Cloud Run Jobs + Cloud Scheduler** — 定期バッチ処理
+- **IAP + Cloud Run Service** — Google認証で保護された Web ページ
+- **Secret Manager** — シークレットを環境変数として自動マウント
+- **Artifact Registry** — コンテナイメージ保管
 
 ## アーキテクチャ
 
@@ -79,6 +85,7 @@ make local-install
 
 # 4. Terraform ステート用 GCS バケットを作成（初回のみ）
 make setup-backend
+# GCS を使わずローカルステートで試す場合は代わりに: make init-local
 
 # 5. デプロイ用サービスアカウントを作成（GitHub Actions 用・初回のみ）
 make setup-deploy-sa
@@ -88,7 +95,7 @@ make setup-deploy-sa
 # 6. Terraform 初期化
 make init
 
-# 7. デプロイ（Registry作成 → ビルド → Terraform apply）
+# 7. デプロイ（Registry作成 → 各イメージビルド → Terraform apply）
 make deploy
 ```
 
@@ -103,6 +110,9 @@ make deploy-app
 
 # Job のみ更新
 make deploy-job
+
+# Pages のみ更新
+make deploy-pages
 
 # Terraform の変更内容を事前確認
 make plan
@@ -134,12 +144,19 @@ make local
 
 # Job を単発実行
 make local-job
+
+# Pages を起動（ホットリロード）
+make local-pages
+# http://localhost:8080 で Pages が起動
 ```
 
-### Docker Compose（API + Job をまとめて実行）
+### Docker Compose（API + Job + Pages をまとめて実行）
 
 ```bash
 docker compose up
+# API:   http://localhost:8080
+# Pages: http://localhost:8081
+# Job は起動時に一度だけ実行されて終了
 ```
 
 ## Makefile コマンド
@@ -194,13 +211,21 @@ const dbUrl = process.env.DATABASE_URL;
 
 ## ルーティングと認証
 
-全トラフィックは API Gateway 経由。Cloud Run への直接アクセスは遮断されています。
+サービスごとに認証方式が異なります。
+
+### API サービス（`app/`）
+
+API Gateway 経由でのみアクセス可能。Cloud Run は `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` で直接アクセスを遮断しています。
 
 | パス | Gateway認証 | アプリ認証 | 用途 |
 |---|---|---|---|
 | `/health` | なし | なし | ヘルスチェック |
 | `/api/*` | IAM認証 | なし | 内部API（社内ツール等） |
 | `/webhook/*` | なし | APIキー（`x-api-key`） | 外部連携（Slack, GAS等） |
+
+### Pages サービス（`pages/`）
+
+別の Cloud Run サービスとして独立し、IAP (Identity-Aware Proxy) で保護されます。詳細は後述の「Pages (IAP 保護)」を参照。
 
 ### Webhook の呼び出し方
 
@@ -260,9 +285,10 @@ Actions タブから手動で実行できます。デプロイ対象を選択可
 
 | 選択肢 | 動作 |
 |---|---|
-| `all` | API + Job の全体デプロイ |
+| `all` | API + Job + Pages の全体デプロイ |
 | `app` | API のみビルド＆デプロイ |
 | `job` | Job のみビルド＆デプロイ |
+| `pages` | Pages のみビルド＆デプロイ |
 
 ### 事前設定
 

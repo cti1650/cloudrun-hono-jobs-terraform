@@ -9,6 +9,7 @@ env:
   REPOSITORY_NAME: cloud-run-apps
   APP_IMAGE_NAME: hono-api
   JOB_IMAGE_NAME: cloud-run-job
+  PAGES_IMAGE_NAME: pages
 
 jobs:
   destroy:
@@ -49,3 +50,4 @@ jobs:
           TF_VAR_repository_name: ${{ env.REPOSITORY_NAME }}
           TF_VAR_app_image_name: ${{ env.APP_IMAGE_NAME }}
           TF_VAR_job_image_name: ${{ env.JOB_IMAGE_NAME }}
+          TF_VAR_pages_image_name: ${{ env.PAGES_IMAGE_NAME }}
